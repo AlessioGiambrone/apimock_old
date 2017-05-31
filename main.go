@@ -1,19 +1,54 @@
 package main
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
+	"github.com/pierreprinetti/apimock/store"
 )
 
-var store map[string]entry
+type Item interface {
+	Value() []byte
+	ContentType() string
+	Read(p []byte) (n int, err error)
+}
 
-type entry struct {
-	Value       []byte
-	ContentType string
+type Store interface {
+	Get(string) Item
+	Set(Item)
+}
+
+type StoreHandler struct {
+	Store
+}
+
+func ItemFromRequest(r *http.Request) Item {
+	body, _ := ioutil.ReadAll(r.Body)
+	return store.NewItem(r.URL.Path, r.Header.Get("Content-Type"), body)
+}
+
+func (s *StoreHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
+	io.Copy(w, s.Get(r.URL.Path))
+}
+
+func (s *StoreHandler) HandlePut(w http.ResponseWriter, r *http.Request) {
+	item := ItemFromRequest(r)
+	s.Set(item)
+}
+
+func (s *StoreHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.HandleGet(w, r)
+		return
+	case http.MethodPut:
+		s.HandlePut(w, r)
+		return
+	}
 }
 
 func set(key string, value []byte, contentType string) {
@@ -91,6 +126,8 @@ func optionsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	localStore := store.New()
+
 	router := mux.NewRouter()
 	// r.HandleFunc("/", HomeHandler)
 	router.HandleFunc("/{path:.*}", getHandler).Methods("GET")
@@ -103,11 +140,4 @@ func main() {
 	n := negroni.New(negroni.NewRecovery(), newLogger(), newCors())
 	n.UseHandler(router)
 	n.Run(host)
-}
-
-func init() {
-	store = make(map[string]entry)
-	if overrideContentType != "" {
-
-	}
 }
