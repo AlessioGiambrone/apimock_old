@@ -2,7 +2,7 @@ package main
 
 import "os"
 
-var host string
+var port string
 var defaultContentType string
 var overrideContentType string
 
@@ -16,7 +16,7 @@ func getenv(varName, def string) string {
 }
 
 func init() {
-	host = getenv("HOST", ":80")
+	port = getenv("PORT", "80")
 	defaultContentType = getenv("DEFAULT_CONTENT_TYPE", "text/plain")
 	overrideContentType = getenv("FORCED_CONTENT_TYPE", "")
 }

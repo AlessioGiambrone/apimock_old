@@ -100,9 +100,9 @@ func main() {
 	router.HandleFunc("/{path:.*}", deleteHandler).Methods("DELETE")
 	router.HandleFunc("/{path:.*}", optionsHandler).Methods("OPTIONS")
 
-	n := negroni.New(negroni.NewRecovery(), newLogger(), newCors())
+	n := negroni.New(negroni.NewRecovery(), newLogger(), newEchoer(), newCors())
 	n.UseHandler(router)
-	n.Run(host)
+	n.Run(":" + port)
 }
 
 func init() {
